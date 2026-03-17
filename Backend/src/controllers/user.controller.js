@@ -20,6 +20,7 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
 
 const registerUser = asyancHandler(async (req, res) => {
     const { username, email, password } = req.body;
+    console.log("body",req.body)
     if (username === "") {
         throw new ApiError(400, "Name Is Required")
     }
@@ -61,6 +62,19 @@ const registerUser = asyancHandler(async (req, res) => {
     )
 })
 
+const logInUser = asyancHandler(async(req, res)=>{
+const {username,password}= req.body
+ // Login logic goes here
+    //get user details from frontend
+    // find the user
+    // password comparison 
+    // access and refresh token generation
+    // send cookies
+if (!(username || password)) {
+    throw new ApiError(400, "username and password required")
+}
+
+})
 export{
     registerUser
 }
