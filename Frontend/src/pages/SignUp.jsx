@@ -10,7 +10,7 @@ function SignUp() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await api.post("/auth/signup", form);
+            const response = await api.post("/register", form);
             setMessage(response.data.message || "Sign up successful! Please log in.")
 
         } catch (error) {

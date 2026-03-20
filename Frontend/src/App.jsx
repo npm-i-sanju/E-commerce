@@ -7,7 +7,7 @@ import SignUp from './pages/SignUp.jsx';
 const router = createBrowserRouter([
   {path:"/", element:<Home/>},
   {path:"/login",element:<Login/>},{
-    path:"/signup",element:<SignUp/>
+    path:"/register",element:<SignUp/>
   },{
     path:"/product/:id", element:<ProductDetails/>
   }
