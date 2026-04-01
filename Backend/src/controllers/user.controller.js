@@ -12,25 +12,23 @@ dotenv.config();
 const generateAccessTokenAndRefreshToken = async (userId) => {
     try {
         const user = await User.findById(userId)
+        
         const accessToken = user.generateAccessToken();
-        console.log("accessToken--", accessToken);
+        //console.log("accessToken--", accessToken);
         const refreshToken = user.generateRefreshToken();
-        console.log("refreshToken--", refreshToken);
+        //console.log("refreshToken--", refreshToken);
         user.refreshToken = refreshToken;
         await user.save({ validateBeforeSave: false });
 
         return { accessToken, refreshToken }
 
     } catch (error) {
-    console.error("Real error:", error) // ← always do this
-    throw error instanceof ApiError
-        ? error
-        : new ApiError(500, "Failed to generate tokens")
+        console.error("Real error:", error) // ← always do this
+        throw error instanceof ApiError
+            ? error
+            : new ApiError(500, "Failed to generate tokens")
+    }
 }
-}
-
-//console.log("generateAccessTokenAndRefreshToken-->", generateAccessTokenAndRefreshToken);
-
 
 
 const registerUser = asyancHandler(async (req, res) => {
@@ -39,10 +37,12 @@ const registerUser = asyancHandler(async (req, res) => {
     console.log("body:", req.body);
     if (!name?.trim()) throw new ApiError(400, "Name is Required");
     if (!email?.trim()) throw new ApiError(400, "Email is Required");
-    if (!password?.trim()) throw new ApiError(400, "Password is Required");
-
+    //if (!password?.trim()) throw new ApiError(400, "Password is Required");
+    if (password === "") {
+        throw new ApiError(400, "Password is Required")
+    }
     const userAlreadyExists = await User.findOne({
-        $or: [{ email }, { username: name.toLowerCase() }]
+        $or: [{ email }, { name: name.toLowerCase() }]
     });
 
     if (userAlreadyExists) {
@@ -50,7 +50,7 @@ const registerUser = asyancHandler(async (req, res) => {
     }
 
     const user = await User.create({
-        username: name.toLowerCase(),
+        name: name.toLowerCase(),
         email,
         password,
     });
@@ -89,8 +89,8 @@ const logInUser = asyancHandler(async (req, res) => {
 
 
     const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id);
-   // console.log("accessToken-->", accessToken);
-  //  console.log("refreshToken-->", refreshToken);
+    // console.log("accessToken-->", accessToken);
+    //  console.log("refreshToken-->", refreshToken);
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
     console.log(loggedInUser);
 
@@ -112,7 +112,72 @@ const logInUser = asyancHandler(async (req, res) => {
         );
 });
 
+const logoutUser = asyancHandler(async (req, res) => {
+    // find user in db
+
+    await User.findByIdAndUpdate(req.user._id, {
+        $unset: {
+            refreshToken: 1
+        }
+    }, {
+        new: true
+    })
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: true
+    }
+    return res.status(201)
+        .clearCookie("refreshToken", cookieOptions)
+        .clearCookie("accessToken", cookieOptions)
+        .json(new ApiResponse(200, {}, "User logged out successfully"))
+})
+
+const refreshAccessToken = asyancHandler(async (req, res) => {
+
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+    if (!incomingRefreshToken) {
+        throw new ApiError(400, "Unauthorized request")
+    }
+    try {
+        // Step 1: verify the refresh token
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        )
+
+        // Step 2: find user on db
+        const user = await User.findById(decodedToken?._id)
+        if (!user) {
+            throw new ApiError(401, "Invalid refresh token")
+        }
+        // Step 3: check refresh token matches what's stored in DB
+        if (incomingRefreshToken !== user?.refreshToken) {
+            throw new ApiError(401, "Refresh token is expired or used");
+        }
+        // Step 4: generate new tokens
+        const options = {
+            httpOnly: true,
+            secure: true
+        }
+
+        const accessToken = user.generateAccessToken()
+        const newRefreshToken = user.generateRefreshToken();
+        // // Step 5: save new refresh token to DB
+        // user.refreshToken = newRefreshToken;
+        // await user.save({ validateBeforeSave: false });
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", newRefreshToken, options)
+            .json(new ApiResponse(200, { accessToken, refreshToken: newRefreshToken }, "Access token refreshed"))
+    } catch (error) {
+        throw new ApiError(401, error?.message || "invalid refresh token")
+    }
+
+
+})
 
 
 
-export { registerUser, logInUser }; 
+export { registerUser, logInUser, logoutUser, refreshAccessToken }; 

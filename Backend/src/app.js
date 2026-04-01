@@ -26,6 +26,7 @@ import userRoute from "./routes/user.route.js"
 
 app.use("/api/user", userRoute)
 
+
 // http://localhost:8000/api/user
 
 export default app;
