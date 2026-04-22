@@ -5,38 +5,44 @@ import api from '../api/axios.js'
 
 function Login() {
 
-    const navigate = useNavigate()
-    const [msg, setMsg] = useState()
-    const [form, setForm] = useState({
-        email: "",
-        password: ""
+  const navigate = useNavigate()
+  const [msg, setMsg] = useState()
+  const [form, setForm] = useState({
+    email: "",
+    password: ""
+  })
+
+  const handleChange =  (e) => {
+    setForm({
+      ...form, [e.target.name]: e.target.value
     })
+  }
 
-    const handleChange = async (e) => {
-        setForm({
-            ...form, [e.target.name]: e.target.value
-        })
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+        const response = await api.post("/login", form)
+
+        const { accessToken, refreshToken, user } = response.data.data 
+
+        localStorage.setItem("accessToken", accessToken)    
+        localStorage.setItem("refreshToken", refreshToken)  
+        //localStorage.setItem("user", JSON.stringify(user))  
+
+        setMsg(response.data.message)
+        //navigate("/dashboard")  // ✅ redirect after login
+
+    } catch (error) {
+        setMsg(error.response?.data?.message || "Login failed.")
     }
+}
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-
-        try {
-            const response = await api.post("/login", form)
-            // save token to localStorage
-            localStorage.setItem("token", response.data.token)
-            setMsg(response.data.msg || "Login successful!")
-        } catch (error) {
-            setMsg(error.response?.data?.msg || "An error occurred during login. Please try again.")
-        }
-
-    }
-
-    return (
-       <div className="flex items-center justify-center min-h-screen bg-slate-100">
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-slate-100">
       {/* ✅ Card wraps BOTH the heading AND the form */}
-      <div className="bg-white p-10 rounded-2xl shadow-lg w-full max-w-sm">
- 
+      <div className="bg-white p-10 rounded-2xl shadow-
+      lg w-full max-w-sm">
+
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-xl mb-4">
@@ -48,7 +54,7 @@ function Login() {
           <h2 className="text-2xl font-bold text-slate-800">Welcome back</h2>
           <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
         </div>
- 
+
         {/* Error message */}
         {msg && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg mb-5">
@@ -58,10 +64,10 @@ function Login() {
             {msg}
           </div>
         )}
- 
+
         {/* ✅ Form is INSIDE the card */}
         <form onSubmit={handleSubmit} className="space-y-4">
- 
+
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -80,7 +86,7 @@ function Login() {
                          transition duration-150"
             />
           </div>
- 
+
           {/* Password */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -102,7 +108,7 @@ function Login() {
                          transition duration-150"
             />
           </div>
- 
+
           {/* Submit */}
           <button
             type="submit"
@@ -113,16 +119,16 @@ function Login() {
             Log In
           </button>
         </form>
- 
+
         {/* Footer */}
         <p className="text-center text-sm text-slate-500 mt-6">
           Don't have an account?{" "}
           <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">Sign up</a>
         </p>
- 
+
       </div>
     </div>
-    )
+  )
 }
 
 export default Login
